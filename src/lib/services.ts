@@ -131,7 +131,7 @@ function assertSupabase(
 
     if (normalized.includes("invalid api key") || normalized.includes("jwt")) {
       throw new AppError(
-        "Supabase key is invalid. Verify NEXT_PUBLIC_SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY in .env.local.",
+        "Supabase key is invalid. Verify NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY and SUPABASE_SERVICE_ROLE_KEY in .env.local.",
         {
           status: 500,
           code: "SUPABASE_AUTH_ERROR",
