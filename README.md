@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mkulima Connect
 
-## Getting Started
+Mkulima Connect is a mobile-first agricultural marketplace built with Next.js App Router. It connects farmers and buyers through listing management, order workflows, payment simulation, notifications, and an admin moderation dashboard.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 + React 19 + TypeScript
+- Tailwind CSS v4
+- Supabase Auth + PostgreSQL backend
+- Server-side session cookies backed by Supabase access/refresh tokens
+- Shadcn-style reusable UI components in `src/components/ui`
+
+## Core Features Implemented
+
+- Role-based authentication: `farmer`, `buyer`, `admin`
+- Profile management and account suspension enforcement
+- Listing lifecycle: create, edit, activate/inactivate/archive
+- Marketplace search, filtering, and sorting
+- Order lifecycle: pending, accepted/rejected, payment pending, paid/cancelled
+- Payment flow with callback/idempotency simulation (Daraja-style contract)
+- In-app notifications for order/payment/system events
+- Admin panel for user moderation, listing moderation, reports, and audit logs
+- REST API routes aligned with the project SDS/SRS endpoint catalog
+- Supabase backend package with SQL migrations, RLS, RPC business functions, and storage policies
+
+## Run
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Build & Lint
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run build
+npm run test
+```
 
-## Learn More
+## Supabase Backend
 
-To learn more about Next.js, take a look at the following resources:
+Supabase database backend is implemented under `supabase/`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `supabase/migrations/*.sql` for schema, RLS, triggers, RPC functions, and storage policies
+- `supabase/seed.sql` for optional sample data
+- `supabase/README.md` for CLI setup and execution
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Apply migrations with Supabase CLI:
 
-## Deploy on Vercel
+```bash
+supabase db push
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The app runtime is now Supabase-backed end to end (`src/lib/auth.ts` + `src/lib/services.ts`).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Production Notes
+
+- Set `PAYMENT_CALLBACK_TOKEN` and send it as `x-callback-token` from payment callbacks.
+- Optionally set `PAYMENT_CALLBACK_ALLOWED_IPS` (comma-separated) to restrict callback source IPs.
+- Set `NEXT_PUBLIC_APP_URL` for password reset and callback URL construction.
+- Optional Daraja integration is enabled when Daraja env credentials are provided.
+- Health endpoint: `GET /api/health`.
+- Operational runbook: `docs/operations.md`.
+
+## Account Setup
+
+1. Register buyer/farmer accounts via `/register`.
+2. Promote any user to admin in Supabase SQL editor if needed:
+   `update public.profiles set role = 'admin' where email = 'your-email@example.com';`
