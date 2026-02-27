@@ -646,6 +646,15 @@ async function waitForProfile(userId: string) {
   return null;
 }
 
+function isNetworkTimeoutError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const cause = (error as Error & { cause?: { code?: string } }).cause;
+  return cause?.code === "ETIMEDOUT" || error.message.toLowerCase().includes("fetch failed");
+}
+
 async function provisionProfileFallback(input: {
   userId: string;
   fullName: string;
@@ -701,18 +710,47 @@ export async function registerUser(input: {
 
   const anon = createSupabaseAnonClient();
 
-  const { data: signUpData, error: signUpError } = await anon.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName,
-        role: input.role,
-        phone: input.phone ? cleanText(input.phone) : null,
-        county: input.county ? cleanText(input.county) : null,
-      },
-    },
-  });
+  let signUpData:
+    | {
+      user: Session["user"] | null;
+      session: Session | null;
+    }
+    | null = null;
+  let signUpError: { message: string } | null = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await anon.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: input.role,
+            phone: input.phone ? cleanText(input.phone) : null,
+            county: input.county ? cleanText(input.county) : null,
+          },
+        },
+      });
+      signUpData = response.data;
+      signUpError = response.error;
+      break;
+    } catch (error) {
+      if (attempt < 2 && isNetworkTimeoutError(error)) {
+        await sleep(350 * (attempt + 1));
+        continue;
+      }
+
+      if (isNetworkTimeoutError(error)) {
+        throw new AppError("Unable to reach Supabase right now. Please retry in a moment.", {
+          status: 503,
+          code: "AUTH_UPSTREAM_UNAVAILABLE",
+        });
+      }
+
+      throw error;
+    }
+  }
 
   if (signUpError) {
     const rawMessage = signUpError.message || "Sign up failed.";
@@ -735,6 +773,11 @@ export async function registerUser(input: {
       code,
     });
   }
+
+  assertOrThrow(signUpData, "Sign up did not return response data.", {
+    status: 500,
+    code: "AUTH_SIGNUP_ERROR",
+  });
 
   assertOrThrow(signUpData.user, "Sign up did not return user data.", {
     status: 500,
