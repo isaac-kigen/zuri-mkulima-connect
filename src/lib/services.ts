@@ -646,6 +646,32 @@ async function waitForProfile(userId: string) {
   return null;
 }
 
+async function provisionProfileFallback(input: {
+  userId: string;
+  fullName: string;
+  email: string;
+  role: "buyer" | "farmer";
+  phone?: string;
+  county?: string;
+}) {
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: input.userId,
+        full_name: input.fullName,
+        email: input.email,
+        role: input.role,
+        phone: input.phone ? cleanText(input.phone) : null,
+        county: input.county ? cleanText(input.county) : null,
+      },
+      { onConflict: "id" },
+    );
+
+  assertSupabase(error, "Failed to provision profile fallback.");
+}
+
 export async function registerUser(input: {
   fullName: string;
   email: string;
@@ -689,10 +715,22 @@ export async function registerUser(input: {
   });
 
   if (signUpError) {
+    const rawMessage = signUpError.message || "Sign up failed.";
+    if (rawMessage.toLowerCase().includes("database error saving new user")) {
+      throw new AppError(
+        "Registration failed because Supabase auth profile trigger is misconfigured. Apply latest migrations and retry.",
+        {
+          status: 500,
+          code: "AUTH_SIGNUP_BACKEND_ERROR",
+          details: { message: rawMessage },
+        },
+      );
+    }
+
     const code = signUpError.message.toLowerCase().includes("already")
       ? "DUPLICATE_EMAIL"
       : "AUTH_SIGNUP_ERROR";
-    throw new AppError(signUpError.message, {
+    throw new AppError(rawMessage, {
       status: code === "DUPLICATE_EMAIL" ? 409 : 400,
       code,
     });
@@ -720,7 +758,19 @@ export async function registerUser(input: {
     session = loginData.session;
   }
 
-  const profile = await waitForProfile(signUpData.user.id);
+  let profile = await waitForProfile(signUpData.user.id);
+  if (!profile) {
+    await provisionProfileFallback({
+      userId: signUpData.user.id,
+      fullName,
+      email,
+      role: input.role as "buyer" | "farmer",
+      phone: input.phone,
+      county: input.county,
+    });
+    profile = await waitForProfile(signUpData.user.id);
+  }
+
   assertOrThrow(profile, "Profile was not provisioned. Ensure auth trigger is deployed.", {
     status: 500,
     code: "PROFILE_PROVISION_ERROR",
