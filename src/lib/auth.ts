@@ -47,10 +47,56 @@ function toPublicUser(profile: ProfileRow): PublicUser {
 }
 
 function normalizeRole(value: unknown): Role {
-  if (value === "admin" || value === "farmer" || value === "buyer") {
-    return value;
+  const role = typeof value === "string" ? value.trim().toLowerCase() : value;
+  if (role === "admin" || role === "farmer" || role === "buyer") {
+    return role;
   }
+  if (role === "producer") {
+    return "farmer";
+  }
+  if (role === "customer") {
+    return "buyer";
+  }
+
   return "buyer";
+}
+
+function normalizePhone(value: string | null | undefined) {
+  const raw = cleanText(value ?? "").replace(/\s+/g, "");
+  if (!raw) {
+    return null;
+  }
+
+  // Convert common local formats to 2547XXXXXXXX
+  const normalized =
+    raw.startsWith("+254") ? `254${raw.slice(4)}` :
+      raw.startsWith("07") ? `254${raw.slice(1)}` :
+        raw;
+
+  if (/^2547\d{8}$/.test(normalized)) {
+    return normalized;
+  }
+
+  return null;
+}
+
+function normalizeCounty(value: string | null | undefined) {
+  const county = cleanText(value ?? "");
+  return county || null;
+}
+
+function normalizeDisplayName(value: string | null | undefined, email: string) {
+  const fallback = email.split("@")[0] || "user";
+  const name = cleanText(value ?? "") || fallback;
+  return name.slice(0, 120);
+}
+
+function normalizeEmail(value: string | null | undefined) {
+  const email = cleanText(value ?? "").toLowerCase();
+  if (/^\S+@\S+\.\S+$/.test(email)) {
+    return email;
+  }
+  return null;
 }
 
 async function provisionMissingProfile(input: {
@@ -62,15 +108,16 @@ async function provisionMissingProfile(input: {
   county?: string | null;
 }) {
   const email = cleanText(input.email ?? "").toLowerCase();
-  assertOrThrow(email, "Email is required to provision profile.", {
+  const normalizedEmail = normalizeEmail(email);
+  assertOrThrow(normalizedEmail, "Email is required to provision profile.", {
     status: 500,
     code: "PROFILE_PROVISION_ERROR",
   });
 
-  const fullName = cleanText(input.fullName ?? "") || email.split("@")[0] || "user";
+  const fullName = normalizeDisplayName(input.fullName, normalizedEmail);
   const role = normalizeRole(input.role);
-  const phone = cleanText(input.phone ?? "") || null;
-  const county = cleanText(input.county ?? "") || null;
+  const phone = normalizePhone(input.phone);
+  const county = normalizeCounty(input.county);
 
   const supabase = createSupabaseServiceClient();
   const { error } = await supabase
@@ -79,7 +126,7 @@ async function provisionMissingProfile(input: {
       {
         id: input.userId,
         full_name: fullName,
-        email,
+        email: normalizedEmail,
         role,
         phone,
         county,
