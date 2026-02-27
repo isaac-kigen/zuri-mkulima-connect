@@ -88,10 +88,23 @@ async function provisionMissingProfile(input: {
     );
 
   if (error) {
+    console.error("Profile provision failed", {
+      message: error.message,
+      code: error.code,
+      hint: error.hint,
+      details: error.details,
+      userId: input.userId,
+      email,
+    });
     throw new AppError("Failed to provision missing user profile.", {
       status: 500,
       code: "PROFILE_PROVISION_ERROR",
-      details: { message: error.message },
+      details: {
+        message: error.message,
+        code: error.code,
+        hint: error.hint,
+        raw: error.details,
+      },
     });
   }
 }
