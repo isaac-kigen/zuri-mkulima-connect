@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { AppError, assertOrThrow } from "@/lib/errors";
 import { createSupabaseAnonClient, createSupabaseServiceClient } from "@/lib/supabase";
 import type { PublicUser, Role } from "@/lib/types";
+import { cleanText } from "@/lib/utils";
 
 export const ACCESS_TOKEN_COOKIE = "mk_access_token";
 export const REFRESH_TOKEN_COOKIE = "mk_refresh_token";
@@ -43,6 +44,56 @@ function toPublicUser(profile: ProfileRow): PublicUser {
     createdAt: profile.created_at,
     updatedAt: profile.updated_at,
   };
+}
+
+function normalizeRole(value: unknown): Role {
+  if (value === "admin" || value === "farmer" || value === "buyer") {
+    return value;
+  }
+  return "buyer";
+}
+
+async function provisionMissingProfile(input: {
+  userId: string;
+  email?: string | null;
+  fullName?: string | null;
+  role?: unknown;
+  phone?: string | null;
+  county?: string | null;
+}) {
+  const email = cleanText(input.email ?? "").toLowerCase();
+  assertOrThrow(email, "Email is required to provision profile.", {
+    status: 500,
+    code: "PROFILE_PROVISION_ERROR",
+  });
+
+  const fullName = cleanText(input.fullName ?? "") || email.split("@")[0] || "user";
+  const role = normalizeRole(input.role);
+  const phone = cleanText(input.phone ?? "") || null;
+  const county = cleanText(input.county ?? "") || null;
+
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: input.userId,
+        full_name: fullName,
+        email,
+        role,
+        phone,
+        county,
+      },
+      { onConflict: "id" },
+    );
+
+  if (error) {
+    throw new AppError("Failed to provision missing user profile.", {
+      status: 500,
+      code: "PROFILE_PROVISION_ERROR",
+      details: { message: error.message },
+    });
+  }
 }
 
 function extractSessionPayload(session: Session): AuthSessionPayload {
@@ -165,6 +216,19 @@ export async function validateCredentials(
 
   const profile = await getProfileById(data.user.id);
   if (!profile) {
+    const meta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
+    await provisionMissingProfile({
+      userId: data.user.id,
+      email: data.user.email,
+      fullName: typeof meta.full_name === "string" ? meta.full_name : null,
+      role: meta.role,
+      phone: typeof meta.phone === "string" ? meta.phone : null,
+      county: typeof meta.county === "string" ? meta.county : null,
+    });
+  }
+
+  const resolvedProfile = (await getProfileById(data.user.id)) ?? null;
+  if (!resolvedProfile) {
     throw new AppError("User profile not found. Complete onboarding first.", {
       status: 404,
       code: "PROFILE_NOT_FOUND",
@@ -172,7 +236,7 @@ export async function validateCredentials(
   }
 
   return {
-    user: profile,
+    user: resolvedProfile,
     session: extractSessionPayload(data.session),
   };
 }
@@ -233,6 +297,23 @@ export async function getCurrentUser() {
 
   const user = await getProfileById(userId);
   if (!user) {
+    const { data, error } = await supabase.auth.getUser(effectiveAccessToken ?? "");
+    if (!error && data.user) {
+      const meta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
+      await provisionMissingProfile({
+        userId: data.user.id,
+        email: data.user.email,
+        fullName: typeof meta.full_name === "string" ? meta.full_name : null,
+        role: meta.role,
+        phone: typeof meta.phone === "string" ? meta.phone : null,
+        county: typeof meta.county === "string" ? meta.county : null,
+      });
+      const recovered = await getProfileById(data.user.id);
+      if (recovered) {
+        return recovered;
+      }
+    }
+
     await destroySession();
     return null;
   }
