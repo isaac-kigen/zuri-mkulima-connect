@@ -53,7 +53,7 @@ create table if not exists public.profiles (
   is_suspended boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint profiles_email_format_chk check (email::text ~* '^\\S+@\\S+\\.\\S+$')
+  constraint profiles_email_format_chk check (email::text ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 );
 
 create table if not exists public.listings (

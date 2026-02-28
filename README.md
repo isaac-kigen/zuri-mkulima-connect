@@ -33,6 +33,27 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## ⚠️ IMPORTANT: Registration Issue & Fix
+
+**Issue:** User profiles are not being created when users register (as of 2026-02-28).
+
+**Status:** ✅ FIXED - See [QUICK_FIX.md](./QUICK_FIX.md)
+
+**Quick Fix (3 steps):**
+1. Go to https://app.supabase.com/project/dmhjccyjbzxaxpikfcve/sql/new
+2. Paste the SQL from `supabase/migrations/20260228140000_fix_email_constraint.sql`
+3. Click "Run"
+
+For detailed explanation, see [REGISTRATION_FIX.md](./REGISTRATION_FIX.md)
+
+After applying the fix:
+```bash
+source .env.local
+node test-registration-fix.mjs  # Verify fix
+npm run dev                       # Start server
+# Register user at http://localhost:3000/register
+```
+
 ## Build & Lint
 
 ```bash
