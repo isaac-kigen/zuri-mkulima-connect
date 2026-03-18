@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { loginAction } from "@/app/actions";
+import { ActionSubmitButton } from "@/components/action-submit-button";
 import { FeedbackBanner } from "@/components/feedback-banner";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,9 +44,9 @@ export default async function LoginPage({ searchParams }: PageProps) {
               <Input id="password" name="password" type="password" required placeholder="Enter your password" />
             </div>
 
-            <Button type="submit" className="w-full">
+            <ActionSubmitButton className="w-full" pendingText="Signing in..." pendingDescription="Opening your workspace and validating your session.">
               Sign in
-            </Button>
+            </ActionSubmitButton>
           </form>
 
           <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs text-[var(--muted-foreground)]">

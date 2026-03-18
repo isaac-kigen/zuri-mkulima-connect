@@ -1,4 +1,4 @@
--- Mkulima Connect Supabase backend: RLS + business functions
+-- Zuri Mkulima Connect Supabase backend: RLS + business functions
 
 alter table public.profiles enable row level security;
 alter table public.listings enable row level security;

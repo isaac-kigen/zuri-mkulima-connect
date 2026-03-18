@@ -1,6 +1,6 @@
-# Mkulima Connect
+# Zuri Mkulima Connect
 
-Mkulima Connect is a mobile-first agricultural marketplace built with Next.js App Router. It connects farmers and buyers through listing management, order workflows, live Daraja M-Pesa payments, notifications, and an admin moderation dashboard.
+Zuri Mkulima Connect is a mobile-first agricultural marketplace built with Next.js App Router. It connects farmers and buyers through listing management, order workflows, live Daraja M-Pesa payments, notifications, and an admin moderation dashboard.
 
 ## Stack
 

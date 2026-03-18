@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { placeOrderAction } from "@/app/actions";
+import { ActionSubmitButton } from "@/components/action-submit-button";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { ListingStatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -170,7 +171,9 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
                           required
                         />
                       </div>
-                      <Button type="submit" className="w-full">Place Order</Button>
+                      <ActionSubmitButton className="w-full" pendingText="Placing order..." pendingDescription="Checking stock and creating your order.">
+                        Place Order
+                      </ActionSubmitButton>
                     </form>
                   ) : user?.role === "farmer" ? (
                     <p className="text-sm text-[var(--muted-foreground)]">Switch to buyer account to place orders.</p>

@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { markNotificationReadAction } from "@/app/actions";
+import { ActionSubmitButton } from "@/components/action-submit-button";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/auth";
 import { getNotificationsForUser } from "@/lib/services";
@@ -64,9 +64,9 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
                 {!notification.isRead && (
                   <form action={markNotificationReadAction}>
                     <input type="hidden" name="notificationId" value={notification.id} />
-                    <Button type="submit" size="sm" variant="outline">
+                    <ActionSubmitButton size="sm" variant="outline" pendingText="Updating..." pendingDescription="Marking this notification as read.">
                       Mark as read
-                    </Button>
+                    </ActionSubmitButton>
                   </form>
                 )}
               </CardContent>

@@ -621,7 +621,7 @@ async function initiateDarajaStkPush(input: {
     PhoneNumber: input.phoneNumber,
     CallBackURL: signedCallbackUrl.toString(),
     AccountReference: `ORDER-${input.orderId.slice(0, 8)}`,
-    TransactionDesc: "Mkulima Connect order payment",
+    TransactionDesc: "Zuri Mkulima Connect order payment",
   };
 
   const token = await getDarajaAccessToken();

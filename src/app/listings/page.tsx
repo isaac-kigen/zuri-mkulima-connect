@@ -6,9 +6,9 @@ import {
   setListingStatusAction,
   updateListingAction,
 } from "@/app/actions";
+import { ActionSubmitButton } from "@/components/action-submit-button";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { ListingStatusBadge } from "@/components/status-badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,7 +106,9 @@ export default async function ListingsPage({ searchParams }: PageProps) {
               </div>
 
               <div className="sm:col-span-2">
-                <Button type="submit" className="w-full sm:w-auto">Create Listing</Button>
+                <ActionSubmitButton className="w-full sm:w-auto" pendingText="Publishing listing..." pendingDescription="Saving product details and making your listing available.">
+                  Create Listing
+                </ActionSubmitButton>
               </div>
             </form>
           </CardContent>
@@ -198,7 +200,9 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                     </div>
 
                     <div className="flex flex-wrap gap-2 sm:col-span-2">
-                      <Button type="submit">Save Changes</Button>
+                      <ActionSubmitButton pendingText="Saving changes..." pendingDescription="Updating your listing details.">
+                        Save Changes
+                      </ActionSubmitButton>
                     </div>
                   </form>
 
@@ -210,17 +214,17 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                         name="status"
                         value={listing.status === "active" ? "inactive" : "active"}
                       />
-                      <Button type="submit" variant="outline" size="sm">
+                      <ActionSubmitButton variant="outline" size="sm" pendingText="Updating status..." pendingDescription="Changing listing visibility.">
                         {listing.status === "active" ? "Set Inactive" : "Set Active"}
-                      </Button>
+                      </ActionSubmitButton>
                     </form>
 
                     <form action={deleteListingAction}>
                       <input type="hidden" name="listingId" value={listing.id} />
                       <input type="hidden" name="reason" value="Owner moderation" />
-                      <Button type="submit" variant="destructive" size="sm">
+                      <ActionSubmitButton variant="destructive" size="sm" pendingText="Archiving..." pendingDescription="Removing this listing from active trading.">
                         Archive Listing
-                      </Button>
+                      </ActionSubmitButton>
                     </form>
                   </div>
                 </CardContent>

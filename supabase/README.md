@@ -1,6 +1,6 @@
-# Supabase Backend (Mkulima Connect)
+# Supabase Backend (Zuri Mkulima Connect)
 
-This folder contains the Supabase backend implementation for Mkulima Connect:
+This folder contains the Supabase backend implementation for Zuri Mkulima Connect:
 
 - Schema migrations (tables, enums, indexes, triggers)
 - Row-Level Security (RLS) policies

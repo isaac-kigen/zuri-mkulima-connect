@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { ActionSubmitButton } from "@/components/action-submit-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { PublicUser } from "@/lib/types";
@@ -17,16 +19,16 @@ function NavLink({ href, label }: { href: string; label: string }) {
 
 export function SiteHeader({ user }: { user: PublicUser | null }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[color:var(--surface)]/85 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <Link href="/" className="inline-flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--primary)] text-sm font-bold text-white">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[linear-gradient(135deg,var(--primary),var(--accent))] text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,0,0,0.18)]">
               MC
             </span>
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold">Mkulima Connect</p>
-              <p className="text-xs text-[var(--muted-foreground)]">Farmer to buyer marketplace</p>
+              <p className="text-sm font-semibold">Zuri Mkulima Connect</p>
+              <p className="text-xs text-[var(--muted-foreground)]">Market infrastructure for modern produce trade</p>
             </div>
           </Link>
 
@@ -41,6 +43,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {user ? (
             <>
               <Badge variant="secondary" className="hidden sm:inline-flex">
@@ -50,9 +53,9 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
                 {user.fullName}
               </Link>
               <form action="/logout" method="post">
-                <Button type="submit" variant="outline" size="sm">
+                <ActionSubmitButton variant="outline" size="sm" pendingText="Signing out..." pendingDescription="Closing your active session safely.">
                   Logout
-                </Button>
+                </ActionSubmitButton>
               </form>
             </>
           ) : (

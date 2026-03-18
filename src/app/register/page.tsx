@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { registerAction } from "@/app/actions";
+import { ActionSubmitButton } from "@/components/action-submit-button";
 import { FeedbackBanner } from "@/components/feedback-banner";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -70,9 +70,9 @@ export default async function RegisterPage({ searchParams }: PageProps) {
               </div>
             </div>
 
-            <Button type="submit" className="w-full">
+            <ActionSubmitButton className="w-full" pendingText="Creating account..." pendingDescription="Setting up your profile and securing your access.">
               Create account
-            </Button>
+            </ActionSubmitButton>
           </form>
 
           <p className="text-sm text-[var(--muted-foreground)]">

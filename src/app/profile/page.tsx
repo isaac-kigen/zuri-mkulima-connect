@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { updateProfileAction } from "@/app/actions";
+import { ActionSubmitButton } from "@/components/action-submit-button";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,7 +65,9 @@ export default async function ProfilePage({ searchParams }: PageProps) {
               <Input id="county" name="county" defaultValue={user.county ?? ""} placeholder="Nairobi" />
             </div>
 
-            <Button type="submit">Save profile</Button>
+            <ActionSubmitButton pendingText="Saving profile..." pendingDescription="Updating your account details.">
+              Save profile
+            </ActionSubmitButton>
           </form>
 
           <div className="rounded-xl bg-[var(--surface-muted)] p-3 text-xs text-[var(--muted-foreground)]">

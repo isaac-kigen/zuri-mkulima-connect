@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { archiveListingByAdminAction, suspendUserAction } from "@/app/actions";
+import { ActionSubmitButton } from "@/components/action-submit-button";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { ListingStatusBadge, PaymentStatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,13 +111,14 @@ export default async function AdminPage({ searchParams }: PageProps) {
                       <Label htmlFor={`note-${entry.id}`}>Audit note (optional)</Label>
                       <Input id={`note-${entry.id}`} name="note" placeholder="Reason for moderation action" />
                     </div>
-                    <Button
-                      type="submit"
+                    <ActionSubmitButton
                       size="sm"
                       variant={entry.isSuspended ? "outline" : "destructive"}
+                      pendingText={entry.isSuspended ? "Reactivating..." : "Suspending..."}
+                      pendingDescription="Applying the moderation action and recording it."
                     >
                       {entry.isSuspended ? "Reactivate" : "Suspend"}
-                    </Button>
+                    </ActionSubmitButton>
                   </form>
                 )}
               </div>
@@ -154,9 +155,9 @@ export default async function AdminPage({ searchParams }: PageProps) {
                       <Label htmlFor={`reason-${listing.id}`}>Reason</Label>
                       <Input id={`reason-${listing.id}`} name="reason" defaultValue="Policy violation" />
                     </div>
-                    <Button type="submit" size="sm" variant="destructive">
+                    <ActionSubmitButton size="sm" variant="destructive" pendingText="Archiving..." pendingDescription="Applying moderation and writing an audit trail.">
                       Archive
-                    </Button>
+                    </ActionSubmitButton>
                   </form>
                 )}
               </div>

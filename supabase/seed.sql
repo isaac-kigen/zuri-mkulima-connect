@@ -1,4 +1,4 @@
--- Optional sample data seed for Mkulima Connect
+-- Optional sample data seed for Zuri Mkulima Connect
 -- Run after creating at least one farmer and one buyer account.
 
 DO $$

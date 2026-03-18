@@ -1,4 +1,4 @@
--- Mkulima Connect Supabase backend bootstrap
+-- Zuri Mkulima Connect Supabase backend bootstrap
 -- Creates core schema, enums, constraints, triggers, and helper functions.
 
 create extension if not exists pgcrypto;

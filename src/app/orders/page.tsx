@@ -6,10 +6,11 @@ import {
   initiatePaymentAction,
   rejectOrderAction,
 } from "@/app/actions";
+import { ActionSubmitButton } from "@/components/action-submit-button";
 import { FeedbackBanner } from "@/components/feedback-banner";
+import { OrdersLiveRefresh } from "@/components/orders-live-refresh";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,9 +41,11 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     userId: user.id,
     role: user.role,
   });
+  const hasPendingPayment = orders.some((order) => order.status === "payment_pending");
 
   return (
     <div className="space-y-6">
+      <OrdersLiveRefresh enabled={hasPendingPayment} />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Orders</h1>
         <p className="text-sm text-[var(--muted-foreground)]">
@@ -116,11 +119,15 @@ export default async function OrdersPage({ searchParams }: PageProps) {
                       <>
                         <form action={acceptOrderAction}>
                           <input type="hidden" name="orderId" value={order.id} />
-                          <Button type="submit" size="sm">Accept</Button>
+                          <ActionSubmitButton size="sm" pendingText="Accepting..." pendingDescription="Confirming the order for payment.">
+                            Accept
+                          </ActionSubmitButton>
                         </form>
                         <form action={rejectOrderAction}>
                           <input type="hidden" name="orderId" value={order.id} />
-                          <Button type="submit" size="sm" variant="destructive">Reject</Button>
+                          <ActionSubmitButton size="sm" variant="destructive" pendingText="Rejecting..." pendingDescription="Declining the order and notifying the buyer.">
+                            Reject
+                          </ActionSubmitButton>
                         </form>
                       </>
                     )}
@@ -128,7 +135,9 @@ export default async function OrdersPage({ searchParams }: PageProps) {
                     {(buyerOwnsOrder || user.role === "admin") && canCancelOrder(order.status) && (
                       <form action={cancelOrderAction}>
                         <input type="hidden" name="orderId" value={order.id} />
-                        <Button type="submit" size="sm" variant="outline">Cancel</Button>
+                        <ActionSubmitButton size="sm" variant="outline" pendingText="Cancelling..." pendingDescription="Cancelling this order safely.">
+                          Cancel
+                        </ActionSubmitButton>
                       </form>
                     )}
                   </div>
@@ -146,7 +155,9 @@ export default async function OrdersPage({ searchParams }: PageProps) {
                           placeholder="2547XXXXXXXX"
                         />
                       </div>
-                      <Button type="submit">Initiate Payment</Button>
+                      <ActionSubmitButton pendingText="Sending STK push..." pendingDescription="Prompting M-Pesa on the buyer's phone and creating the payment record.">
+                        Initiate Payment
+                      </ActionSubmitButton>
                     </form>
                   )}
 
@@ -154,6 +165,9 @@ export default async function OrdersPage({ searchParams }: PageProps) {
                     <div className="space-y-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-3">
                       <p className="text-sm text-[var(--muted-foreground)]">
                         Payment request sent. Complete the M-Pesa prompt on your phone and wait for Daraja callback confirmation.
+                      </p>
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        This page refreshes automatically while payment is pending.
                       </p>
                     </div>
                   )}
