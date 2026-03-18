@@ -42,4 +42,17 @@ describe("payment callback security", () => {
       ),
     ).toThrow();
   });
+
+  it("accepts callback with valid token in query string", () => {
+    process.env.PAYMENT_CALLBACK_TOKEN = "secret-token";
+    process.env.PAYMENT_CALLBACK_ALLOWED_IPS = "";
+
+    expect(() =>
+      requireVerifiedPaymentCallback(
+        new Request("http://localhost/api/payments/callback?token=secret-token", {
+          method: "POST",
+        }),
+      ),
+    ).not.toThrow();
+  });
 });

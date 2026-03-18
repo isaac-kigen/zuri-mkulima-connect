@@ -82,6 +82,24 @@ export interface PaymentRecord {
   updatedAt: string;
 }
 
+export interface PaymentLogRecord {
+  id: string;
+  paymentId: string | null;
+  orderId: string | null;
+  provider: string;
+  eventType: string;
+  status: string | null;
+  merchantRequestId: string | null;
+  checkoutRequestId: string | null;
+  mpesaReceiptNumber: string | null;
+  resultCode: number | null;
+  resultDesc: string | null;
+  phoneNumber: string | null;
+  amountKes: number | null;
+  payload: unknown | null;
+  createdAt: string;
+}
+
 export interface NotificationRecord {
   id: string;
   recipientId: string;

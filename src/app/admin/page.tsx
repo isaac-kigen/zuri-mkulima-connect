@@ -184,6 +184,9 @@ export default async function AdminPage({ searchParams }: PageProps) {
                   <p className="text-xs text-[var(--muted-foreground)]">
                     {formatKes(payment.amountKes)} · {formatDate(payment.updatedAt)}
                   </p>
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    Checkout: {payment.checkoutRequestId ?? "n/a"}{payment.mpesaReceiptNumber ? ` · Receipt: ${payment.mpesaReceiptNumber}` : ""}
+                  </p>
                 </div>
               ))
             )}
@@ -205,6 +208,39 @@ export default async function AdminPage({ searchParams }: PageProps) {
                   <p className="text-xs text-[var(--muted-foreground)]">
                     Target: {item.targetTable} / {item.targetId.slice(0, 8)}
                   </p>
+                  <p className="text-xs text-[var(--muted-foreground)]">{formatDate(item.createdAt)}</p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Logs</CardTitle>
+            <CardDescription>Daraja initiation and callback events captured by the server.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {reports.recentPaymentLogs.length === 0 ? (
+              <p className="text-sm text-[var(--muted-foreground)]">No payment log events recorded.</p>
+            ) : (
+              reports.recentPaymentLogs.map((item) => (
+                <div key={item.id} className="rounded-xl border border-[var(--border)] p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium">{item.eventType}</p>
+                    {item.status && <Badge variant="secondary">{item.status}</Badge>}
+                  </div>
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    Order: {item.orderId ? item.orderId.slice(0, 8) : "n/a"} · Checkout: {item.checkoutRequestId ?? "n/a"}
+                  </p>
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    {item.amountKes !== null ? `${formatKes(item.amountKes)} · ` : ""}{item.phoneNumber ?? "No phone"}{item.resultCode !== null ? ` · Code ${item.resultCode}` : ""}
+                  </p>
+                  {item.resultDesc && (
+                    <p className="text-xs text-[var(--muted-foreground)]">{item.resultDesc}</p>
+                  )}
                   <p className="text-xs text-[var(--muted-foreground)]">{formatDate(item.createdAt)}</p>
                 </div>
               ))

@@ -1,6 +1,6 @@
 # Mkulima Connect
 
-Mkulima Connect is a mobile-first agricultural marketplace built with Next.js App Router. It connects farmers and buyers through listing management, order workflows, payment simulation, notifications, and an admin moderation dashboard.
+Mkulima Connect is a mobile-first agricultural marketplace built with Next.js App Router. It connects farmers and buyers through listing management, order workflows, live Daraja M-Pesa payments, notifications, and an admin moderation dashboard.
 
 ## Stack
 
@@ -17,7 +17,7 @@ Mkulima Connect is a mobile-first agricultural marketplace built with Next.js Ap
 - Listing lifecycle: create, edit, activate/inactivate/archive
 - Marketplace search, filtering, and sorting
 - Order lifecycle: pending, accepted/rejected, payment pending, paid/cancelled
-- Payment flow with callback/idempotency simulation (Daraja-style contract)
+- Payment flow with live Daraja STK push and callback/idempotency handling
 - In-app notifications for order/payment/system events
 - Admin panel for user moderation, listing moderation, reports, and audit logs
 - REST API routes aligned with the project SDS/SRS endpoint catalog
@@ -80,10 +80,11 @@ The app runtime is now Supabase-backed end to end (`src/lib/auth.ts` + `src/lib/
 
 ## Production Notes
 
-- Set `PAYMENT_CALLBACK_TOKEN` and send it as `x-callback-token` from payment callbacks.
+- Set Daraja credentials: `DARAJA_CONSUMER_KEY`, `DARAJA_CONSUMER_SECRET`, `DARAJA_PASSKEY`, `DARAJA_SHORTCODE`.
+- Set `DARAJA_CALLBACK_URL` or `NEXT_PUBLIC_APP_URL` so the app can register the real callback URL.
+- Set `PAYMENT_CALLBACK_TOKEN` to have the app append `?token=...` to the Daraja callback URL automatically, or set `PAYMENT_CALLBACK_ALLOWED_IPS` to enforce source IP allowlisting.
 - Optionally set `PAYMENT_CALLBACK_ALLOWED_IPS` (comma-separated) to restrict callback source IPs.
 - Set `NEXT_PUBLIC_APP_URL` for password reset and callback URL construction.
-- Optional Daraja integration is enabled when Daraja env credentials are provided.
 - Health endpoint: `GET /api/health`.
 - Operational runbook: `docs/operations.md`.
 

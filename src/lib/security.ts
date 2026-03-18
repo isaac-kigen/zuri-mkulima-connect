@@ -75,22 +75,26 @@ export function enforceRateLimit(input: {
 
 export function requireVerifiedPaymentCallback(request: Request) {
   const expectedToken = process.env.PAYMENT_CALLBACK_TOKEN;
-  assertOrThrow(expectedToken, "PAYMENT_CALLBACK_TOKEN is not configured.", {
+  const allowedIps = parseIpList(process.env.PAYMENT_CALLBACK_ALLOWED_IPS ?? "");
+  assertOrThrow(expectedToken || allowedIps.length > 0, "Configure PAYMENT_CALLBACK_TOKEN and/or PAYMENT_CALLBACK_ALLOWED_IPS for payment callbacks.", {
     status: 500,
     code: "CONFIG_ERROR",
   });
 
-  const providedToken = request.headers.get("x-callback-token");
-  assertOrThrow(providedToken, "Missing callback token.", {
-    status: 401,
-    code: "CALLBACK_AUTH_REQUIRED",
-  });
-  assertOrThrow(safeEquals(providedToken, expectedToken), "Invalid callback token.", {
-    status: 401,
-    code: "CALLBACK_AUTH_INVALID",
-  });
+  if (expectedToken) {
+    const requestUrl = new URL(request.url);
+    const providedToken = request.headers.get("x-callback-token") ?? requestUrl.searchParams.get("token");
 
-  const allowedIps = parseIpList(process.env.PAYMENT_CALLBACK_ALLOWED_IPS ?? "");
+    assertOrThrow(providedToken, "Missing callback token.", {
+      status: 401,
+      code: "CALLBACK_AUTH_REQUIRED",
+    });
+    assertOrThrow(safeEquals(providedToken, expectedToken), "Invalid callback token.", {
+      status: 401,
+      code: "CALLBACK_AUTH_INVALID",
+    });
+  }
+
   if (allowedIps.length > 0) {
     const ip = getRequestIp(request);
     assertOrThrow(allowedIps.includes(ip), "Callback origin is not allowed.", {

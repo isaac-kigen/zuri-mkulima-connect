@@ -5,8 +5,6 @@ import {
   cancelOrderAction,
   initiatePaymentAction,
   rejectOrderAction,
-  simulatePaymentFailureAction,
-  simulatePaymentSuccessAction,
 } from "@/app/actions";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/status-badge";
@@ -155,18 +153,8 @@ export default async function OrdersPage({ searchParams }: PageProps) {
                   {buyerOwnsOrder && order.status === "payment_pending" && order.payment?.checkoutRequestId && (
                     <div className="space-y-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-3">
                       <p className="text-sm text-[var(--muted-foreground)]">
-                        For MVP testing, trigger callback simulation to complete the payment lifecycle.
+                        Payment request sent. Complete the M-Pesa prompt on your phone and wait for Daraja callback confirmation.
                       </p>
-                      <div className="flex flex-wrap gap-2">
-                        <form action={simulatePaymentSuccessAction}>
-                          <input type="hidden" name="orderId" value={order.id} />
-                          <Button type="submit" size="sm">Simulate Success Callback</Button>
-                        </form>
-                        <form action={simulatePaymentFailureAction}>
-                          <input type="hidden" name="orderId" value={order.id} />
-                          <Button type="submit" size="sm" variant="outline">Simulate Failure Callback</Button>
-                        </form>
-                      </div>
                     </div>
                   )}
                 </CardContent>

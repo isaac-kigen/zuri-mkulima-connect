@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-
 import type { Session } from "@supabase/supabase-js";
 
 import type { AuthSessionPayload } from "@/lib/auth";
@@ -19,6 +17,7 @@ import type {
   OrderRecord,
   OrderStatus,
   OrderWithRelations,
+  PaymentLogRecord,
   PaymentRecord,
   PaymentStatus,
   PublicUser,
@@ -85,6 +84,24 @@ type PaymentRow = {
   raw_callback: unknown | null;
   created_at: string;
   updated_at: string;
+};
+
+type PaymentLogRow = {
+  id: string;
+  payment_id: string | null;
+  order_id: string | null;
+  provider: string;
+  event_type: string;
+  status: string | null;
+  merchant_request_id: string | null;
+  checkout_request_id: string | null;
+  mpesa_receipt_number: string | null;
+  result_code: number | null;
+  result_desc: string | null;
+  phone_number: string | null;
+  amount_kes: number | string | null;
+  payload: unknown | null;
+  created_at: string;
 };
 
 type NotificationRow = {
@@ -272,6 +289,26 @@ function toPaymentRecord(row: PaymentRow): PaymentRecord {
     rawCallback: row.raw_callback,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function toPaymentLogRecord(row: PaymentLogRow): PaymentLogRecord {
+  return {
+    id: row.id,
+    paymentId: row.payment_id,
+    orderId: row.order_id,
+    provider: row.provider,
+    eventType: row.event_type,
+    status: row.status,
+    merchantRequestId: row.merchant_request_id,
+    checkoutRequestId: row.checkout_request_id,
+    mpesaReceiptNumber: row.mpesa_receipt_number,
+    resultCode: typeof row.result_code === "number" ? row.result_code : row.result_code === null ? null : Number(row.result_code),
+    resultDesc: row.result_desc,
+    phoneNumber: row.phone_number,
+    amountKes: row.amount_kes === null ? null : toNumber(row.amount_kes),
+    payload: row.payload,
+    createdAt: row.created_at,
   };
 }
 
@@ -501,25 +538,8 @@ function transitionOrderStatus(current: OrderStatus, action: "accept" | "reject"
   return "cancelled";
 }
 
-function generateCheckoutRequestId() {
-  return `ws_CO_${randomUUID().replace(/-/g, "").slice(0, 20)}`;
-}
-
-function generateMerchantRequestId() {
-  return `MR_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
-}
-
 function darajaBaseUrl() {
   return process.env.DARAJA_BASE_URL?.trim() || "https://sandbox.safaricom.co.ke";
-}
-
-function isDarajaConfigured() {
-  return Boolean(
-    process.env.DARAJA_CONSUMER_KEY &&
-      process.env.DARAJA_CONSUMER_SECRET &&
-      process.env.DARAJA_PASSKEY &&
-      process.env.DARAJA_SHORTCODE,
-  );
 }
 
 function formatDarajaTimestamp(date = new Date()) {
@@ -585,6 +605,25 @@ async function initiateDarajaStkPush(input: {
     code: "DARAJA_CONFIG_ERROR",
   });
 
+  const signedCallbackUrl = new URL(callbackUrl);
+  const callbackToken = process.env.PAYMENT_CALLBACK_TOKEN?.trim();
+  if (callbackToken && !signedCallbackUrl.searchParams.has("token")) {
+    signedCallbackUrl.searchParams.set("token", callbackToken);
+  }
+
+  const requestPayload = {
+    BusinessShortCode: shortcode,
+    Timestamp: timestamp,
+    TransactionType: "CustomerPayBillOnline",
+    Amount: Math.round(input.amountKes),
+    PartyA: input.phoneNumber,
+    PartyB: shortcode,
+    PhoneNumber: input.phoneNumber,
+    CallBackURL: signedCallbackUrl.toString(),
+    AccountReference: `ORDER-${input.orderId.slice(0, 8)}`,
+    TransactionDesc: "Mkulima Connect order payment",
+  };
+
   const token = await getDarajaAccessToken();
   const response = await fetch(`${darajaBaseUrl()}/mpesa/stkpush/v1/processrequest`, {
     method: "POST",
@@ -593,17 +632,8 @@ async function initiateDarajaStkPush(input: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      BusinessShortCode: shortcode,
+      ...requestPayload,
       Password: password,
-      Timestamp: timestamp,
-      TransactionType: "CustomerPayBillOnline",
-      Amount: Math.round(input.amountKes),
-      PartyA: input.phoneNumber,
-      PartyB: shortcode,
-      PhoneNumber: input.phoneNumber,
-      CallBackURL: callbackUrl,
-      AccountReference: `ORDER-${input.orderId.slice(0, 8)}`,
-      TransactionDesc: "Mkulima Connect order payment",
     }),
   });
 
@@ -623,14 +653,50 @@ async function initiateDarajaStkPush(input: {
   return {
     checkoutRequestId: body.CheckoutRequestID as string,
     merchantRequestId: body.MerchantRequestID as string,
+    requestPayload,
+    responsePayload: body,
   };
 }
 
-function randomReceipt() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const letters = Array.from({ length: 2 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
-  const digits = `${Math.floor(100000 + Math.random() * 900000)}`;
-  return `${letters}${digits}`;
+async function recordPaymentLog(input: {
+  paymentId?: string | null;
+  orderId?: string | null;
+  provider?: string;
+  eventType: string;
+  status?: string | null;
+  merchantRequestId?: string | null;
+  checkoutRequestId?: string | null;
+  mpesaReceiptNumber?: string | null;
+  resultCode?: number | null;
+  resultDesc?: string | null;
+  phoneNumber?: string | null;
+  amountKes?: number | null;
+  payload?: unknown;
+}) {
+  try {
+    const supabase = createSupabaseServiceClient();
+    const { error } = await supabase.from("payment_logs").insert({
+      payment_id: input.paymentId ?? null,
+      order_id: input.orderId ?? null,
+      provider: input.provider ?? "daraja",
+      event_type: input.eventType,
+      status: input.status ?? null,
+      merchant_request_id: input.merchantRequestId ?? null,
+      checkout_request_id: input.checkoutRequestId ?? null,
+      mpesa_receipt_number: input.mpesaReceiptNumber ?? null,
+      result_code: input.resultCode ?? null,
+      result_desc: input.resultDesc ? cleanText(input.resultDesc) : null,
+      phone_number: input.phoneNumber ? cleanText(input.phoneNumber) : null,
+      amount_kes: input.amountKes ?? null,
+      payload: input.payload ?? null,
+    });
+
+    if (error) {
+      console.error("Failed to persist payment log.", error);
+    }
+  } catch (error) {
+    console.error("Unexpected payment log failure.", error);
+  }
 }
 
 async function waitForProfile(userId: string) {
@@ -1400,23 +1466,39 @@ export async function initiatePayment(input: {
     code: "DUPLICATE_PAYMENT",
   });
 
-  const requestIds = isDarajaConfigured()
-    ? await initiateDarajaStkPush({
-      amountKes: toNumber(order.total_kes),
+  const amountKes = toNumber(order.total_kes);
+
+  let requestIds: Awaited<ReturnType<typeof initiateDarajaStkPush>>;
+  try {
+    requestIds = await initiateDarajaStkPush({
+      amountKes,
       phoneNumber,
       orderId: order.id,
-    })
-    : {
-      checkoutRequestId: generateCheckoutRequestId(),
-      merchantRequestId: generateMerchantRequestId(),
-    };
+    });
+  } catch (error) {
+    await recordPaymentLog({
+      orderId: order.id,
+      eventType: "stk_initiation_failed",
+      status: "failed",
+      phoneNumber,
+      amountKes,
+      resultDesc: error instanceof Error ? error.message : "Daraja STK initiation failed.",
+      payload: {
+        orderId: order.id,
+        phoneNumber,
+        amountKes,
+        error: error instanceof AppError ? error.details ?? null : null,
+      },
+    });
+    throw error;
+  }
 
   const { data: paymentData, error: paymentError } = await supabase
     .from("payments")
     .upsert(
       {
         order_id: order.id,
-        amount_kes: toNumber(order.total_kes),
+        amount_kes: amountKes,
         status: "pending",
         merchant_request_id: requestIds.merchantRequestId,
         checkout_request_id: requestIds.checkoutRequestId,
@@ -1437,6 +1519,21 @@ export async function initiatePayment(input: {
     .single();
 
   assertSupabase(orderError, "Failed to update order payment state.");
+
+  await recordPaymentLog({
+    paymentId: (paymentData as PaymentRow).id,
+    orderId: order.id,
+    eventType: "stk_initiated",
+    status: "pending",
+    merchantRequestId: requestIds.merchantRequestId,
+    checkoutRequestId: requestIds.checkoutRequestId,
+    phoneNumber,
+    amountKes,
+    payload: {
+      request: requestIds.requestPayload,
+      response: requestIds.responsePayload,
+    },
+  });
 
   return {
     payment: toPaymentRecord(paymentData as PaymentRow),
@@ -1473,7 +1570,35 @@ export async function processPaymentCallback(input: {
     code: "NOT_FOUND",
   });
 
+  await recordPaymentLog({
+    paymentId: payment.id,
+    orderId: payment.order_id,
+    eventType: "callback_received",
+    status: payment.status,
+    merchantRequestId: payment.merchant_request_id,
+    checkoutRequestId: payment.checkout_request_id,
+    resultCode: input.resultCode,
+    resultDesc: input.resultDesc,
+    phoneNumber: cleanText(input.phoneNumber ?? "") || payment.phone_number,
+    amountKes: toNumber(payment.amount_kes),
+    payload: input.payload ?? null,
+  });
+
   if (["success", "failed", "reversed"].includes(payment.status)) {
+    await recordPaymentLog({
+      paymentId: payment.id,
+      orderId: payment.order_id,
+      eventType: "callback_idempotent",
+      status: payment.status,
+      merchantRequestId: payment.merchant_request_id,
+      checkoutRequestId: payment.checkout_request_id,
+      resultCode: input.resultCode,
+      resultDesc: input.resultDesc,
+      phoneNumber: payment.phone_number,
+      amountKes: toNumber(payment.amount_kes),
+      payload: input.payload ?? null,
+    });
+
     return {
       idempotent: true,
       payment: toPaymentRecord(payment),
@@ -1496,7 +1621,7 @@ export async function processPaymentCallback(input: {
     .update({
       status: successful ? "success" : "failed",
       mpesa_receipt_number: successful
-        ? cleanText(input.mpesaReceiptNumber ?? "") || randomReceipt()
+        ? cleanText(input.mpesaReceiptNumber ?? "")
         : null,
       transaction_date: successful
         ? input.transactionDate ?? nowIso()
@@ -1525,6 +1650,21 @@ export async function processPaymentCallback(input: {
 
   assertSupabase(updatedOrderError, "Failed to update order after payment callback.");
   const updatedOrder = updatedOrderData as OrderRow;
+
+  await recordPaymentLog({
+    paymentId: (updatedPaymentData as PaymentRow).id,
+    orderId: order.id,
+    eventType: successful ? "callback_processed_success" : "callback_processed_failure",
+    status: successful ? "success" : "failed",
+    merchantRequestId: (updatedPaymentData as PaymentRow).merchant_request_id,
+    checkoutRequestId: (updatedPaymentData as PaymentRow).checkout_request_id,
+    mpesaReceiptNumber: (updatedPaymentData as PaymentRow).mpesa_receipt_number,
+    resultCode: input.resultCode,
+    resultDesc: input.resultDesc,
+    phoneNumber: (updatedPaymentData as PaymentRow).phone_number,
+    amountKes: toNumber((updatedPaymentData as PaymentRow).amount_kes),
+    payload: input.payload ?? null,
+  });
 
   if (successful) {
     const { data: stockData, error: stockError } = await supabase.rpc("consume_listing_stock", {
@@ -1767,6 +1907,7 @@ export async function getAdminReports(adminId: string) {
     paymentsRes,
     logsRes,
     recentPaymentsRes,
+    paymentLogsRes,
   ] = await Promise.all([
     supabase.from("profiles").select("id, role"),
     supabase.from("listings").select("id, status"),
@@ -1782,6 +1923,11 @@ export async function getAdminReports(adminId: string) {
       .select("id, order_id, amount_kes, status, merchant_request_id, checkout_request_id, mpesa_receipt_number, transaction_date, phone_number, raw_callback, created_at, updated_at")
       .order("updated_at", { ascending: false })
       .limit(20),
+    supabase
+      .from("payment_logs")
+      .select("id, payment_id, order_id, provider, event_type, status, merchant_request_id, checkout_request_id, mpesa_receipt_number, result_code, result_desc, phone_number, amount_kes, payload, created_at")
+      .order("created_at", { ascending: false })
+      .limit(30),
   ]);
 
   assertSupabase(usersRes.error, "Failed to load users report.");
@@ -1790,6 +1936,7 @@ export async function getAdminReports(adminId: string) {
   assertSupabase(paymentsRes.error, "Failed to load payments report.");
   assertSupabase(logsRes.error, "Failed to load admin logs report.");
   assertSupabase(recentPaymentsRes.error, "Failed to load recent payments report.");
+  assertSupabase(paymentLogsRes.error, "Failed to load payment logs report.");
 
   const users = (usersRes.data as Array<{ id: string; role: Role }>) ?? [];
   const listings = (listingsRes.data as Array<{ id: string; status: ListingStatus }>) ?? [];
@@ -1812,6 +1959,7 @@ export async function getAdminReports(adminId: string) {
     },
     recentAuditLogs: ((logsRes.data as AdminAuditRow[]) ?? []).map(toAdminAuditRecord),
     recentPayments: ((recentPaymentsRes.data as PaymentRow[]) ?? []).map(toPaymentRecord),
+    recentPaymentLogs: ((paymentLogsRes.data as PaymentLogRow[]) ?? []).map(toPaymentLogRecord),
   };
 }
 

@@ -64,6 +64,11 @@ If `role` is omitted, it defaults to `buyer`.
 - `archive_listing_admin(p_listing_id uuid, p_reason text)`
 - `dashboard_snapshot(p_user_id uuid default auth.uid())`
 
+## Payment observability
+
+- `payments` stores the current canonical payment state.
+- `payment_logs` stores immutable Daraja lifecycle events such as STK initiation, initiation failures, callback receipt, idempotent callbacks, and callback processing outcomes.
+
 ## Storage bucket
 
 - Bucket: `listing-photos`

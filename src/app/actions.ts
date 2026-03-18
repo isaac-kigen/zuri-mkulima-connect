@@ -10,10 +10,8 @@ import {
   createListing,
   createOrder,
   deleteListing,
-  getOrderById,
   initiatePayment,
   markNotificationRead,
-  processPaymentCallback,
   registerUser,
   setListingStatus,
   suspendUser,
@@ -353,64 +351,6 @@ export async function initiatePaymentAction(formData: FormData) {
     revalidatePath("/orders");
     revalidatePath("/dashboard");
     redirectWithMessage("/orders", "success", "Payment request initiated. Await callback confirmation.");
-  } catch (error) {
-    handleActionError("/orders", error);
-  }
-}
-
-export async function simulatePaymentSuccessAction(formData: FormData) {
-  await simulatePaymentResult(formData, 0, "The service request is processed successfully.");
-}
-
-export async function simulatePaymentFailureAction(formData: FormData) {
-  await simulatePaymentResult(formData, 1032, "Payment request cancelled by user.");
-}
-
-async function simulatePaymentResult(formData: FormData, code: number, description: string) {
-  const orderId = `${formData.get("orderId") ?? ""}`;
-
-  try {
-    const user = await getCurrentUser();
-    if (!user) {
-      redirectWithMessage("/login", "error", "Please login to continue.");
-    }
-
-    const order = await getOrderById(orderId);
-
-    if (user.role !== "admin" && user.id !== order.buyer.id) {
-      redirectWithMessage("/orders", "error", "Only the buyer can confirm payment.");
-    }
-
-    if (!order.payment?.checkoutRequestId) {
-      redirectWithMessage("/orders", "error", "No pending payment found for this order.");
-    }
-
-    await processPaymentCallback({
-      checkoutRequestId: order.payment.checkoutRequestId,
-      resultCode: code,
-      resultDesc: description,
-      payload: {
-        Body: {
-          stkCallback: {
-            CheckoutRequestID: order.payment.checkoutRequestId,
-            ResultCode: code,
-            ResultDesc: description,
-          },
-        },
-      },
-    });
-
-    revalidatePath("/orders");
-    revalidatePath("/marketplace");
-    revalidatePath("/dashboard");
-    revalidatePath("/notifications");
-    redirectWithMessage(
-      "/orders",
-      "success",
-      code === 0
-        ? "Payment callback processed successfully."
-        : "Payment failure callback processed.",
-    );
   } catch (error) {
     handleActionError("/orders", error);
   }
