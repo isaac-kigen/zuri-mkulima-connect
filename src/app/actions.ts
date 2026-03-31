@@ -54,6 +54,12 @@ function handleActionError(path: string, error: unknown): never {
   redirectWithMessage(path, "error", toErrorMessage(error));
 }
 
+function extractPhotoFiles(formData: FormData, fieldName = "photos") {
+  return formData
+    .getAll(fieldName)
+    .filter((value): value is File => value instanceof File && value.size > 0);
+}
+
 export async function loginAction(formData: FormData) {
   const email = `${formData.get("email") ?? ""}`;
   const password = `${formData.get("password") ?? ""}`;
@@ -161,6 +167,7 @@ export async function createListingAction(formData: FormData) {
       location: `${formData.get("location") ?? ""}`,
       description: `${formData.get("description") ?? ""}`,
       imageUrls: images,
+      photoFiles: extractPhotoFiles(formData),
     });
 
     revalidatePath("/listings");
@@ -174,6 +181,10 @@ export async function createListingAction(formData: FormData) {
 
 export async function updateListingAction(formData: FormData) {
   const listingId = `${formData.get("listingId") ?? ""}`;
+  const images = `${formData.get("imageUrls") ?? ""}`
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
 
   try {
     const user = await getCurrentUser();
@@ -192,6 +203,8 @@ export async function updateListingAction(formData: FormData) {
       location: `${formData.get("location") ?? ""}`,
       description: `${formData.get("description") ?? ""}`,
       status: `${formData.get("status") ?? "active"}` as ListingStatus,
+      imageUrls: images,
+      photoFiles: extractPhotoFiles(formData),
     });
 
     revalidatePath("/listings");

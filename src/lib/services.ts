@@ -58,6 +58,10 @@ type ListingPhotoRow = {
   created_at: string;
 };
 
+const LISTING_PHOTO_BUCKET = "listing-photos";
+const LISTING_PHOTO_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+const LISTING_PHOTO_ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 type OrderRow = {
   id: string;
   listing_id: string;
@@ -252,12 +256,97 @@ function toListingRecord(row: ListingRow): ListingRecord {
 }
 
 function toListingPhotoRecord(row: ListingPhotoRow): ListingPhotoRecord {
+  const supabase = createSupabaseAnonClient();
+  const normalizedPath = row.storage_path.trim();
+  const publicUrl = normalizedPath.startsWith("http://") || normalizedPath.startsWith("https://")
+    ? normalizedPath
+    : supabase.storage.from(LISTING_PHOTO_BUCKET).getPublicUrl(normalizedPath).data.publicUrl;
+
   return {
     id: row.id,
     listingId: row.listing_id,
-    storagePath: row.storage_path,
+    storagePath: normalizedPath,
+    publicUrl,
     createdAt: row.created_at,
   };
+}
+
+function getFileExtension(file: File) {
+  const fileName = file.name.trim().toLowerCase();
+  const explicitExtension = fileName.includes(".") ? fileName.split(".").pop() : "";
+
+  if (explicitExtension) {
+    return explicitExtension;
+  }
+
+  switch (file.type) {
+    case "image/jpeg":
+      return "jpg";
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    default:
+      return "bin";
+  }
+}
+
+function filterPhotoValues(values?: string[]) {
+  return (values ?? []).map((value) => cleanText(value)).filter(Boolean);
+}
+
+async function uploadListingPhotos(listingId: string, files: File[]) {
+  if (!files.length) {
+    return [];
+  }
+
+  const supabase = createSupabaseServiceClient();
+  const uploadedPaths: string[] = [];
+
+  for (const file of files) {
+    assertOrThrow(file.size > 0, `Photo "${file.name || "upload"}" is empty.`, {
+      status: 400,
+      code: "INVALID_FILE",
+    });
+
+    assertOrThrow(file.size <= LISTING_PHOTO_MAX_SIZE_BYTES, `Photo "${file.name || "upload"}" exceeds 10MB.`, {
+      status: 400,
+      code: "FILE_TOO_LARGE",
+    });
+
+    assertOrThrow(LISTING_PHOTO_ALLOWED_TYPES.has(file.type), `Photo "${file.name || "upload"}" must be JPEG, PNG, or WEBP.`, {
+      status: 400,
+      code: "INVALID_FILE_TYPE",
+    });
+
+    const path = `${listingId}/${crypto.randomUUID()}.${getFileExtension(file)}`;
+    const { error } = await supabase.storage
+      .from(LISTING_PHOTO_BUCKET)
+      .upload(path, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    assertSupabase(error, `Failed to upload photo "${file.name || "upload"}".`);
+    uploadedPaths.push(path);
+  }
+
+  return uploadedPaths;
+}
+
+async function saveListingPhotoRecords(listingId: string, storagePaths: string[]) {
+  if (!storagePaths.length) {
+    return;
+  }
+
+  const supabase = createSupabaseServiceClient();
+  const photoInsert = storagePaths.map((path) => ({
+    listing_id: listingId,
+    storage_path: path,
+  }));
+
+  const { error } = await supabase.from("listing_photos").insert(photoInsert);
+  assertSupabase(error, "Failed to save listing photos.");
 }
 
 function toOrderRecord(row: OrderRow): OrderRecord {
@@ -1028,6 +1117,7 @@ export async function createListing(input: {
   location: string;
   description?: string;
   imageUrls?: string[];
+  photoFiles?: File[];
 }) {
   const productName = cleanText(input.productName);
   const unit = cleanText(input.unit);
@@ -1067,16 +1157,9 @@ export async function createListing(input: {
   assertSupabase(error, "Failed to create listing.");
   const listing = data as ListingRow;
 
-  const storagePaths = (input.imageUrls ?? []).map((value) => cleanText(value)).filter(Boolean);
-  if (storagePaths.length) {
-    const photoInsert = storagePaths.map((path) => ({
-      listing_id: listing.id,
-      storage_path: path,
-    }));
-
-    const { error: photoError } = await supabase.from("listing_photos").insert(photoInsert);
-    assertSupabase(photoError, "Failed to save listing photos.");
-  }
+  const uploadedPaths = await uploadListingPhotos(listing.id, input.photoFiles ?? []);
+  const storagePaths = [...filterPhotoValues(input.imageUrls), ...uploadedPaths];
+  await saveListingPhotoRecords(listing.id, storagePaths);
 
   const [view] = await buildListingViews([listing]);
   return view;
@@ -1093,6 +1176,8 @@ export async function updateListing(input: {
   location: string;
   description?: string;
   status?: ListingStatus;
+  imageUrls?: string[];
+  photoFiles?: File[];
 }) {
   const productName = cleanText(input.productName);
   const unit = cleanText(input.unit);
@@ -1140,6 +1225,9 @@ export async function updateListing(input: {
     .single();
 
   assertSupabase(error, "Failed to update listing.");
+  const uploadedPaths = await uploadListingPhotos(input.listingId, input.photoFiles ?? []);
+  const newStoragePaths = [...filterPhotoValues(input.imageUrls), ...uploadedPaths];
+  await saveListingPhotoRecords(input.listingId, newStoragePaths);
   const [view] = await buildListingViews([data as ListingRow]);
   return view;
 }

@@ -4,6 +4,12 @@ import { getCurrentUser, requireUser } from "@/lib/auth";
 import { handleApiError } from "@/lib/errors";
 import { createListing, getListings } from "@/lib/services";
 
+function extractPhotoFiles(formData: FormData, fieldName = "photos") {
+  return formData
+    .getAll(fieldName)
+    .filter((value): value is File => value instanceof File && value.size > 0);
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -44,6 +50,35 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await requireUser(["farmer", "admin"]);
+    const contentType = request.headers.get("content-type") ?? "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const imageUrls = `${formData.get("imageUrls") ?? ""}`
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      const listing = await createListing({
+        farmerId: user.id,
+        productName: `${formData.get("product_name") ?? formData.get("productName") ?? ""}`,
+        category: `${formData.get("category") ?? ""}`,
+        quantity: `${formData.get("quantity") ?? ""}`,
+        unit: `${formData.get("unit") ?? ""}`,
+        priceKes: `${formData.get("price_kes") ?? formData.get("priceKes") ?? ""}`,
+        location: `${formData.get("location") ?? ""}`,
+        description: `${formData.get("description") ?? ""}`,
+        imageUrls,
+        photoFiles: extractPhotoFiles(formData),
+      });
+
+      return NextResponse.json({
+        status: "success",
+        message: "Listing created.",
+        data: listing,
+      });
+    }
+
     const body = await request.json();
 
     const listing = await createListing({

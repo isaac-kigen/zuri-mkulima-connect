@@ -92,6 +92,14 @@ export default async function ListingsPage({ searchParams }: PageProps) {
               </div>
 
               <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="photos">Photos (optional)</Label>
+                <Input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  Upload JPEG, PNG, or WEBP images up to 10MB each.
+                </p>
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
                 <Label htmlFor="imageUrls">Image URL(s), comma-separated (optional)</Label>
                 <Input
                   id="imageUrls"
@@ -143,6 +151,21 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {listing.photos.length > 0 && (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {listing.photos.map((photo, index) => (
+                        <div key={photo.id} className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={photo.publicUrl}
+                            alt={`${listing.productName} photo ${index + 1}`}
+                            className="h-40 w-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="rounded-xl bg-[var(--surface-muted)] p-3 text-sm">
                     <p>
                       <strong>Price:</strong> {formatKes(listing.priceKes)}
@@ -192,6 +215,29 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                         <option value="inactive">Inactive</option>
                         <option value="archived">Archived</option>
                       </Select>
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-2">
+                      <Label htmlFor={`photos-${listing.id}`}>Add More Photos (optional)</Label>
+                      <Input
+                        id={`photos-${listing.id}`}
+                        name="photos"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                      />
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        New uploads are added to the existing gallery.
+                      </p>
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-2">
+                      <Label htmlFor={`imageUrls-${listing.id}`}>Add Image URL(s), comma-separated (optional)</Label>
+                      <Input
+                        id={`imageUrls-${listing.id}`}
+                        name="imageUrls"
+                        placeholder="https://.../image1.jpg, https://.../image2.jpg"
+                      />
                     </div>
 
                     <div className="space-y-1 sm:col-span-2">

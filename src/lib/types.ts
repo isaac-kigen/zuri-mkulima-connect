@@ -51,6 +51,7 @@ export interface ListingPhotoRecord {
   id: string;
   listingId: string;
   storagePath: string;
+  publicUrl: string;
   createdAt: string;
 }
 

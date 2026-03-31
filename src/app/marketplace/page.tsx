@@ -138,6 +138,16 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 space-y-2">
+                  {listing.photos[0] ? (
+                    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={listing.photos[0].publicUrl}
+                        alt={listing.productName}
+                        className="h-48 w-full object-cover"
+                      />
+                    </div>
+                  ) : null}
                   {listing.category && (
                     <Badge variant="secondary" className="capitalize">
                       {listing.category}
