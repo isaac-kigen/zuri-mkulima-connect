@@ -1,0 +1,35 @@
+{
+  "name": "zuri-mkulima-connect",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "nohup node node_modules/next/dist/bin/next start -p 3000 > /tmp/next-server.log 2>&1 & sleep 4 && echo 'Server PID:' && jobs -l"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.6.0",
+    "@ant-design/nextjs-registry": "^1.1.0",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.12",
+    "antd": "^5.24.0",
+    "next": "^16.2.10",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.10",
+    "typescript": "^5.5.0"
+  },
+  "overrides": {
+    "postcss": "8.5.16",
+    "glob": "10.4.5",
+    "semver": "7.7.1"
+  }
+}

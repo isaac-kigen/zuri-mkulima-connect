@@ -1,0 +1,187 @@
+/* Zuri Mkulima Connect - Modern Design System */
+
+:root {
+  /* Primary Color - Forest Green */
+  --color-primary: #1a7a1a;
+  --color-primary-light: #2e9e2e;
+  --color-primary-50: #f6ffed;
+  --color-primary-100: #e6f4e6;
+  --color-primary-bg: #f0f8f0;
+
+  /* Neutrals */
+  --color-surface: #ffffff;
+  --color-bg: #f5f7f5;
+  --color-bg-alt: #fafbfa;
+  --color-border: #e5ebe5;
+  --color-text: #1a2e1a;
+  --color-text-secondary: #5a6e5a;
+  --color-text-muted: #8a9a8a;
+
+  /* Semantic Colors */
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --color-info: #0284c7;
+
+  /* Spacing */
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+
+  /* Sizing */
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+  --shadow: 0 4px 6px rgba(0,0,0,0.05);
+  --shadow-md: 0 10px 15px rgba(0,0,0,0.06);
+  --shadow-lg: 0 20px 25px rgba(0,0,0,0.08);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+
+  /* Transitions */
+  --transition: 200ms ease;
+  --transition-fast: 100ms ease;
+
+  /* Layout */
+  --max-width: 1400px;
+  --header-height: 56px;
+  --bottom-nav-height: 60px;
+}
+
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition);
+}
+
+a:hover {
+  color: var(--color-primary-light);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+p {
+  margin: 0;
+}
+
+/* Layout Helpers */
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* FIXED: exactly the header height, no extra 8px */
+.site-content {
+  padding-top: var(--header-height);
+  min-height: calc(100vh - var(--header-height));
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 767px) {
+  .site-content {
+    padding-bottom: var(--bottom-nav-height);
+  }
+}
+
+/* --- Animations --- */
+.slide-up {
+  animation: slideUp 300ms ease forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 200ms ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* --- Responsive Utilities --- */
+.hide-mobile { display: none !important; }
+.hide-desktop { display: unset !important; }
+
+@media (min-width: 768px) {
+  .hide-mobile  { display: unset !important; }
+  .hide-desktop { display: none !important; }
+}
+
+.max-width-container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.responsive-grid {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 480px)  { .responsive-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 768px)  { .responsive-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .responsive-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.card-grid {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+@media (min-width: 768px) {
+  .card-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+}
+
+.page-section { margin-bottom: var(--space-2xl); }
+
+.flex-center  { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.text-center  { text-align: center; }
+.text-muted   { color: var(--color-text-muted); }
+.text-success { color: var(--color-success); }
+.text-error   { color: var(--color-error); }
+.text-warning { color: var(--color-warning); }
+
+.responsive-padding { padding: 12px; }
+@media (min-width: 480px)  { .responsive-padding { padding: 16px; } }
+@media (min-width: 768px)  { .responsive-padding { padding: 24px; } }
